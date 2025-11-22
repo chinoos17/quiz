@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz : Me connais-tu vraiment ?</title>
+    <style>
+        :root {
+            --main-color: #800020; /* Rouge Bordeaux */
+            --bg-color: #F0F0E8;   /* Blanc Sale / Beige */
+            --text-color: #2c2c2c;
+            --heart-block: #e74c3c;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--bg-color);
+            color: var(--main-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            transition: background 0.8s;
+        }
+
+        /* --- STRUCTURE --- */
+        .container {
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .img-container {
+            width: 100%;
+            height: 250px;
+            background-color: #ddd;
+            border: 4px solid var(--main-color);
+            margin-bottom: 20px;
+            overflow: hidden;
+            position: relative;
+            border-radius: 8px;
+            box-shadow: 5px 5px 0px rgba(0,0,0,0.2);
+        }
+
+        .img-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        button {
+            background-color: white;
+            border: 2px solid var(--main-color);
+            color: var(--main-color);
+            padding: 15px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s, background 0.3s;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: var(--main-color);
+            color: white;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        /* --- TETRIS HEART --- */
+        .heart-container {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: repeat(9, 15px);
+            grid-template-rows: repeat(8, 15px);
+            gap: 2px;
+            justify-content: center;
+        }
+
+        .pixel {
+            width: 15px;
+            height: 15px;
+            background-color: transparent;
+            border: 1px solid rgba(128, 0, 32, 0.1);
+        }
+
+        .pixel.active-shape {
+            border-color: var(--main-color);
+        }
+
+        .pixel.filled {
+            background-color: var(--heart-block);
+            box-shadow: inset 2px 2px rgba(255,255,255,0.4);
+            animation: dropIn 0.3s ease-out;
+        }
+
+        @keyframes dropIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* --- ANIMATIONS --- */
+        /* Victoire */
+        .victory-anim {
+            animation: pulseGreen 0.5s;
+        }
+        @keyframes pulseGreen {
+            0% { background-color: var(--bg-color); }
+            50% { background-color: #d4edda; }
+            100% { background-color: var(--bg-color); }
+        }
+
+        /* Déception */
+        .shake-anim {
+            animation: shake 0.5s;
+            background-color: #f8d7da;
+        }
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        /* --- ECRAN DE FIN --- */
+        #end-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            color: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            text-align: center;
+        }
+        
+        .end-message {
+            font-size: 2rem;
+            margin: 20px;
+            max-width: 80%;
+        }
+
+        .big-emoji {
+            font-size: 5rem;
+            margin-bottom: 20px;
+        }
+
+        /* Feux d'artifice (CSS simple) */
+        .firework {
+            position: absolute;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            animation: explode 1s infinite;
+        }
+
+        /* Faucheuse */
+        .reaper {
+            animation: loom 4s infinite alternate;
+            filter: drop-shadow(0 0 10px red);
+            color: #800020;
+        }
+        @keyframes loom {
+            from { transform: scale(1); opacity: 0.8; }
+            to { transform: scale(1.2); opacity: 1; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container" id="quiz-container">
+        <div class="img-container">
+            <img id="q-image" src="" alt="Image Question">
+        </div>
+        
+        <h2 id="q-text">Question</h2>
+
+        <div class="options-grid" id="options-area">
+            </div>
+
+        <div class="heart-container" id="heart-grid">
+            </div>
+    </div>
+
+    <div id="end-screen">
+        <div id="end-icon" class="big-emoji"></div>
+        <div id="end-msg" class="end-message"></div>
+        <button onclick="location.reload()">Recommencer</button>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. CONFIGURATION DU QUIZ (PERSONNALISEZ ICI)
+        // ==========================================
+        
+        const quizData = [
+            {
+                question: "Quel est mon plat préféré ?",
+                image: "https://i.pinimg.com/1200x/80/89/1a/80891a7b6368af5bf4c73317fed9dd2a.jpg", // Exemple (Nourriture)
+                options: ["badenda", "haricot", "souman", "dankounou"],
+                correct: 1 // 0=badenda, 1=haricot, 2=souman, 3=dankounou (L'index commence à 0)
+            },
+            {
+                question: "Quelle est ma couleur preferer ?",
+                image: "https://i.pinimg.com/736x/7c/0f/28/7c0f28dcb5291057b8a258c6b5c7ae00.jpg", 
+                options: ["vert", "bleu", "jaune", "gris"],
+                correct: 0
+            },
+            {
+                question: "Si je gagnais au loto, j'achèterais quoi en premier ?",
+                image: "https://i.pinimg.com/736x/74/41/06/74410663e311df90b6f104f197bebc3e.jpg", 
+                options: ["Une Ferrari", "Une maison", "Un voyage", "Un PC Gamer"],
+                correct: 3
+            },
+            {
+                question: "Quel est mon pire défaut ?",
+                image: "https://i.pinimg.com/736x/d6/ad/84/d6ad840aaed8942cf18b4904954f089f.jpg", 
+                options: ["curieux", "colerique", "Jaloux", "Têtu"],
+                correct: 0
+            },
+            {
+                question: "Où s'est-on embrassé pour la première fois ?",
+                image: "https://i.pinimg.com/736x/c1/6d/c1/c16dc156e479e544ec3a630c6a169fe4.jpg", 
+                options: ["chez moi", "devant chez toi", "devant chez shakira", "aucune de ces options"],
+                correct: 3
+            },
+            {
+                question: "j'aime qui le plus ?",
+                image: "https://i.pinimg.com/736x/73/83/60/7383601641c2c1afab4e0816be57f52f.jpg", 
+                options: ["toi ", "moi", "mon ex", "ma deuxieme ex"],
+                correct: 0
+            }
+            // Vous pouvez ajouter plus de questions en copiant le bloc {...},
+        ];
+
+        // ==========================================
+        // 2. LOGIQUE DU JEU
+        // ==========================================
+
+        let currentQuestion = 0;
+        let score = 0;
+        let intensity = 0; // Augmente avec les bonnes réponses
+
+        // Définition de la forme du coeur sur la grille 9x8 (1 = pixel du coeur, 0 = vide)
+        const heartShape = [
+            0,1,1,0,0,0,1,1,0,
+            1,1,1,1,0,1,1,1,1,
+            1,1,1,1,1,1,1,1,1,
+            1,1,1,1,1,1,1,1,1,
+            0,1,1,1,1,1,1,1,0,
+            0,0,1,1,1,1,1,0,0,
+            0,0,0,1,1,1,0,0,0,
+            0,0,0,0,1,0,0,0,0
+        ];
+        // On stocke les index des pixels qui font partie du coeur
+        let heartIndices = [];
+
+        function initGame() {
+            // Créer la grille coeur
+            const heartContainer = document.getElementById('heart-grid');
+            heartShape.forEach((val, index) => {
+                const div = document.createElement('div');
+                div.classList.add('pixel');
+                if(val === 1) {
+                    div.classList.add('active-shape');
+                    heartIndices.push(index); // On mémorise où sont les blocs du coeur
+                }
+                div.id = `pixel-${index}`;
+                heartContainer.appendChild(div);
+            });
+
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= quizData.length) {
+                endGame();
+                return;
+            }
+
+            const data = quizData[currentQuestion];
+            document.getElementById('q-text').textContent = data.question;
+            document.getElementById('q-image').src = data.image;
+            
+            const optionsDiv = document.getElementById('options-area');
+            optionsDiv.innerHTML = "";
+
+            data.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(index);
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex) {
+            const data = quizData[currentQuestion];
+            const body = document.body;
+
+            if (selectedIndex === data.correct) {
+                // --- VRAI ---
+                score++;
+                intensity++;
+                
+                // Animation Victoire
+                body.classList.add('victory-anim');
+                setTimeout(() => body.classList.remove('victory-anim'), 500);
+
+                // Remplir le coeur (Tetris effect)
+                // On calcule combien de blocs remplir par bonne réponse
+                const totalHeartBlocks = heartIndices.length;
+                const blocksPerQuestion = Math.ceil(totalHeartBlocks / quizData.length);
+                
+                let filledCount = 0;
+                for(let i=0; i<heartIndices.length; i++) {
+                    let pixelId = heartIndices[i];
+                    let pixelDiv = document.getElementById(`pixel-${pixelId}`);
+                    if (!pixelDiv.classList.contains('filled')) {
+                        pixelDiv.classList.add('filled');
+                        filledCount++;
+                    }
+                    if(filledCount >= blocksPerQuestion) break;
+                }
+
+            } else {
+                // --- FAUX ---
+                // Animation Déception
+                body.classList.add('shake-anim');
+                setTimeout(() => body.classList.remove('shake-anim'), 500);
+            }
+
+            currentQuestion++;
+            setTimeout(loadQuestion, 600); // Petit délai pour voir l'anim
+        }
+
+        function endGame() {
+            const endScreen = document.getElementById('end-screen');
+            const endIcon = document.getElementById('end-icon');
+            const endMsg = document.getElementById('end-msg');
+            const average = quizData.length / 2;
+
+            endScreen.style.display = 'flex';
+
+            if (score > average) {
+                // --- VICTOIRE ---
+                endScreen.style.background = "linear-gradient(to bottom, #800020, #000)";
+                endIcon.innerHTML = "💖";
+                endMsg.textContent = "T'as eu de la chance que tu me connais bien !";
+                createFireworks();
+            } else {
+                // --- DEFAITE ---
+                endScreen.style.background = "black";
+                endIcon.innerHTML = "💀";
+                endIcon.classList.add('reaper');
+                endMsg.textContent = "Tu me connais pas vraiment on dirait...";
+                endMsg.style.color = "red";
+            }
+        }
+
+        function createFireworks() {
+            setInterval(() => {
+                const fw = document.createElement('div');
+                fw.classList.add('firework');
+                fw.style.left = Math.random() * 100 + 'vw';
+                fw.style.top = Math.random() * 100 + 'vh';
+                fw.style.backgroundColor = Math.random() > 0.5 ? 'gold' : 'white';
+                fw.style.boxShadow = `0 0 10px ${fw.style.backgroundColor}`;
+                document.getElementById('end-screen').appendChild(fw);
+                
+                // Animation simple via JS pour les particules
+                let size = 10;
+                let opacity = 1;
+                const anim = setInterval(() => {
+                    size += 5;
+                    opacity -= 0.05;
+                    fw.style.transform = `scale(${size/10})`;
+                    fw.style.opacity = opacity;
+                    if(opacity <= 0) {
+                        clearInterval(anim);
+                        fw.remove();
+                    }
+                }, 50);
+
+            }, 300);
+        }
+
+        // Lancer le jeu
+        initGame();
+
+    </script>
+</body>
+</html>
